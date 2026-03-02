@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // Ajouter cette importation
-import QRCode from 'qrcode.react';
+import Link from 'next/link';
+import { QRCodeCanvas } from 'qrcode.react'; // <-- CHANGEMENT ICI
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -124,7 +124,7 @@ export default function DashboardPage() {
         {links.length === 0 ? (
           <div className="bg-white rounded-xl p-12 text-center text-gray-400">
             <p className="text-4xl mb-4">🔗</p>
-            <p>Aucun lien pour l&apos;instant.</p> {/* Correction ici */}
+            <p>Aucun lien pour l&apos;instant.</p>
             <Link href="/" className="text-blue-600 hover:underline mt-2 block">
               Crée ton premier lien
             </Link>
@@ -196,7 +196,7 @@ export default function DashboardPage() {
                       </div>
                       {selectedQR === link.id && (
                         <div className="mt-2 flex justify-center">
-                          <QRCode 
+                          <QRCodeCanvas // <-- CHANGEMENT ICI AUSSI
                             value={`${baseUrl}/${link.short_code}`} 
                             size={100} 
                             level="H" 
