@@ -3,6 +3,20 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { QRCodeCanvas } from 'qrcode.react';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  FiLink,
+  FiCopy,
+  FiCheck,
+  FiLoader,
+  FiArrowRight,
+  FiBarChart2,
+  FiSmartphone,
+  FiShield,
+  FiZap,
+  FiUsers
+} from 'react-icons/fi';
+import { toast, Toaster } from 'react-hot-toast';
 
 export default function HomePage() {
   const [url, setUrl] = useState('');
@@ -29,12 +43,15 @@ export default function HomePage() {
 
       if (!response.ok) {
         setError(data.error || 'Une erreur est survenue');
+        toast.error(data.error || 'Une erreur est survenue');
         return;
       }
 
       setResult(data);
+      toast.success('Lien raccourci avec succès !');
     } catch (err) {
       setError('Impossible de contacter le serveur');
+      toast.error('Erreur de connexion');
     } finally {
       setLoading(false);
     }
@@ -43,113 +60,260 @@ export default function HomePage() {
   const handleCopy = () => {
     navigator.clipboard.writeText(result.shortUrl);
     setCopied(true);
+    toast.success('Copié dans le presse-papier !');
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-blue-600">Konekte</h1>
-          <Link href="/dashboard" className="text-sm text-gray-600 hover:text-blue-600">
-            Dashboard
-          </Link>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+      <Toaster position="top-right" />
+
+      {/* Navigation */}
+      <nav className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+
+            {/* Logo */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center space-x-2"
+            >
+              <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
+                <FiLink className="text-white w-4 h-4" />
+              </div>
+              <span className="text-lg font-bold text-gray-900">
+                URL Shortener
+              </span>
+            </motion.div>
+
+            {/* Liens de navigation */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center space-x-2"
+            >
+              <span className="px-3 py-2 rounded-md text-sm font-semibold text-indigo-600 bg-indigo-50">
+                Accueil
+              </span>
+              <Link
+                href="/dashboard"
+                className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors flex items-center space-x-1.5"
+              >
+                <FiBarChart2 className="w-4 h-4" />
+                <span>Dashboard</span>
+              </Link>
+              <Link
+                href="/login"
+                className="ml-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+              >
+                Connexion
+              </Link>
+            </motion.div>
+          </div>
         </div>
-      </header>
+      </nav>
 
       {/* Hero Section */}
-      <div className="max-w-2xl mx-auto px-4 py-16">
-        <div className="text-center mb-10">
-          <h2 className="text-4xl font-bold text-gray-800 mb-4">
-            Raccourcis tes liens
-          </h2>
-          <p className="text-gray-500 text-lg">
-            Simple, rapide et gratuit. Transforme n importe quelle URL en lien court.
-          </p>
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 z-0">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-gradient-to-br from-indigo-100/30 to-purple-100/30 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-blue-100/30 to-indigo-100/30 rounded-full blur-3xl" />
         </div>
 
-        {/* Formulaire principal */}
-        <form onSubmit={handleShorten} className="bg-white rounded-2xl shadow-lg p-8">
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              URL longue
-            </label>
-            <input
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://exemple.com/une-url-tres-longue..."
-              required
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Alias personnalisé (optionnel)
-            </label>
-            <div className="flex items-center gap-2">
-              <span className="text-gray-400 text-sm">konekte.io/</span>
-              <input
-                type="text"
-                value={customCode}
-                onChange={(e) => setCustomCode(e.target.value)}
-                placeholder="mon-alias"
-                maxLength={16}
-                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 text-red-600 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition disabled:opacity-50"
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-center max-w-3xl mx-auto"
           >
-            {loading ? 'En cours...' : 'Raccourcir'}
-          </button>
-        </form>
+            <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
+              Raccourcissez vos liens
+              <span className="block text-transparent bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text">
+                en un clic
+              </span>
+            </h1>
+            <p className="text-xl text-gray-700 mb-8">
+              Transformez vos longues URLs en liens courts et élégants.
+              Suivez vos statistiques et générez des QR codes instantanément.
+            </p>
+          </motion.div>
 
-        {/* Résultat */}
-      {result && (
-    <div className="mt-6 bg-white rounded-2xl shadow-lg p-8">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Ton lien est prêt !</h3>
-      <div className="flex items-center gap-3 mb-6">
-        <input
-          readOnly
-          value={result.shortUrl}
-          className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-blue-600 font-mono"
-        />
-        <button
-          onClick={handleCopy}
-          className="px-4 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition"
-        >
-          {copied ? '✓ Copié' : 'Copier'}
-        </button>
-      </div>
+          {/* Formulaire principal */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="max-w-3xl mx-auto mt-12"
+          >
+            <form onSubmit={handleShorten} className="bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">
+                    URL à raccourcir
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="url"
+                      value={url}
+                      onChange={(e) => setUrl(e.target.value)}
+                      placeholder="https://exemple.com/une-url-tres-longue..."
+                      required
+                      className="w-full px-4 py-3 pl-11 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
+                    />
+                    <FiLink className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  </div>
+                </div>
 
-      {/* QR Code - CHANGEMENT ICI AUSSI */}
-      <div className="flex flex-col items-center">
-        <p className="text-sm text-gray-500 mb-3">QR Code</p>
-        <QRCodeCanvas  // <-- Au lieu de QRCode
-          value={result.shortUrl}
-          size={200}
-          level="H"
-          includeMargin={true}
-          className="border border-gray-100 rounded-lg p-2"
-        />
-        <p className="text-xs text-gray-400 mt-2">Scanne pour ouvrir le lien</p>
-      </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">
+                    Alias personnalisé <span className="font-normal text-gray-500">(optionnel)</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-600 text-sm font-medium bg-gray-100 px-3 py-3 rounded-xl border border-gray-200 whitespace-nowrap">
+                      konekte.io/
+                    </span>
+                    <input
+                      type="text"
+                      value={customCode}
+                      onChange={(e) => setCustomCode(e.target.value)}
+                      placeholder="mon-alias"
+                      maxLength={16}
+                      className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all text-gray-900 placeholder-gray-400"
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm font-medium">
+                    {error}
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 shadow-sm flex items-center justify-center space-x-2"
+                >
+                  {loading ? (
+                    <>
+                      <FiLoader className="w-5 h-5 animate-spin" />
+                      <span>Traitement en cours...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Raccourcir</span>
+                      <FiArrowRight className="w-5 h-5" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+
+            {/* Résultat */}
+            <AnimatePresence>
+              {result && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="mt-6 bg-white rounded-2xl shadow-xl p-6 border border-gray-200"
+                >
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">
+                    Ton lien est prêt !
+                  </h3>
+                  <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                    <input
+                      readOnly
+                      value={result.shortUrl}
+                      className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-indigo-600 font-mono font-semibold"
+                    />
+                    <button
+                      onClick={handleCopy}
+                      className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-colors flex items-center justify-center space-x-2"
+                    >
+                      {copied ? (
+                        <>
+                          <FiCheck className="w-5 h-5" />
+                          <span>Copié !</span>
+                        </>
+                      ) : (
+                        <>
+                          <FiCopy className="w-5 h-5" />
+                          <span>Copier</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* QR Code */}
+                  <div className="flex flex-col items-center">
+                    <p className="text-sm font-semibold text-gray-700 mb-3">QR Code</p>
+                    <div className="bg-white p-3 rounded-xl shadow-md border border-gray-200">
+                      <QRCodeCanvas
+                        value={result.shortUrl}
+                        size={180}
+                        level="H"
+                        includeMargin={true}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 mt-2 font-medium">
+                      Scannez pour ouvrir le lien sur mobile
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-16 bg-white border-t border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Pourquoi choisir URL Shortener ?
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Une solution complète pour gérer vos liens comme un pro
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              { icon: FiZap, title: "Rapide", desc: "Raccourcissement instantané" },
+              { icon: FiBarChart2, title: "Analytics", desc: "Suivi des clics en temps réel" },
+              { icon: FiSmartphone, title: "QR Code", desc: "Génération automatique" },
+              { icon: FiShield, title: "Sécurisé", desc: "Liens vérifiés et actifs" }
+            ].map((feature, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="p-6 bg-gray-50 border border-gray-200 rounded-xl hover:shadow-md transition-shadow"
+              >
+                <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+                  <feature.icon className="w-6 h-6 text-indigo-600" />
+                </div>
+                <h3 className="font-bold text-gray-900 mb-2">{feature.title}</h3>
+                <p className="text-gray-600 text-sm">{feature.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="bg-white border-t border-gray-200 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center text-gray-600 text-sm font-medium">
+            © 2025 URL Shortener — Tous droits réservés
+          </div>
+        </div>
+      </footer>
     </div>
-  )}
-      </div>
-    </main>
   );
 }
