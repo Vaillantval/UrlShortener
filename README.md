@@ -30,7 +30,7 @@ UrlShortner est une application de raccourcissement de liens moderne construite 
 
 1. **Clonez le dépôt**
    ```bash
-   git clone https://github.com/votre-username/urlshortner.git
+   git clone https://github.com/Vaillantval/urlshortner.git
    cd urlshortner
    ```
 
