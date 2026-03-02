@@ -1,4 +1,4 @@
-# 🔗 UrlShortner - Raccourcisseur de liens
+# 🔗 UrlShortner - Raccourcisseur de liens (Valcin & Ben/ Transversal)
 
 UrlShortner est une application de raccourcissement de liens moderne construite avec **Next.js 14**, **Supabase** et **Tailwind CSS**. Elle permet de créer des liens courts, générer des QR codes, et suivre les statistiques de clics.
 
