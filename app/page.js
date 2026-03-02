@@ -52,9 +52,9 @@ export default function HomePage() {
       <header className="bg-white shadow-sm">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-blue-600">Konekte</h1>
-          <link href="/dashboard" className="text-sm text-gray-600 hover:text-blue-600">
+          <Link href="/dashboard" className="text-sm text-gray-600 hover:text-blue-600">
             Dashboard
-          </link>
+          </Link>
         </div>
       </header>
 
