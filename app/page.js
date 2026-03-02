@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { QRCodeCanvas } from 'qrcode.react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -14,17 +15,40 @@ import {
   FiSmartphone,
   FiShield,
   FiZap,
+  FiLogOut,
   FiUsers
 } from 'react-icons/fi';
 import { toast, Toaster } from 'react-hot-toast';
+import { supabase } from '@/lib/supabase';
 
 export default function HomePage() {
+  const router = useRouter();
+  const [user, setUser] = useState(null);
   const [url, setUrl] = useState('');
   const [customCode, setCustomCode] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+
+  // Vérifie si l'utilisateur est connecté au chargement
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUser(user);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    toast.success('Déconnexion réussie');
+  };
 
   const handleShorten = async (e) => {
     e.preventDefault();
@@ -36,7 +60,8 @@ export default function HomePage() {
       const response = await fetch('/api/shorten', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, customCode }),
+        // On envoie toujours le userId si l'utilisateur est connecté
+        body: JSON.stringify({ url, customCode, userId: user?.id || null }),
       });
 
       const data = await response.json();
@@ -87,7 +112,7 @@ export default function HomePage() {
               </span>
             </motion.div>
 
-            {/* Liens de navigation */}
+            {/* Liens de navigation — différents selon l'état de connexion */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -96,19 +121,52 @@ export default function HomePage() {
               <span className="px-3 py-2 rounded-md text-sm font-semibold text-indigo-600 bg-indigo-50">
                 Accueil
               </span>
-              <Link
-                href="/dashboard"
-                className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors flex items-center space-x-1.5"
-              >
-                <FiBarChart2 className="w-4 h-4" />
-                <span>Dashboard</span>
-              </Link>
-              <Link
-                href="/login"
-                className="ml-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
-              >
-                Connexion
-              </Link>
+
+              {user ? (
+                // Utilisateur connecté : affiche email + dashboard + déconnexion
+                <>
+                  <Link
+                    href="/dashboard"
+                    className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors flex items-center space-x-1.5"
+                  >
+                    <FiBarChart2 className="w-4 h-4" />
+                    <span>Dashboard</span>
+                  </Link>
+                  <div className="flex items-center space-x-2 border border-gray-200 px-3 py-1.5 rounded-lg bg-gray-50 ml-2">
+                    <div className="w-5 h-5 bg-indigo-100 rounded-full flex items-center justify-center">
+                      <FiUsers className="w-3 h-3 text-indigo-600" />
+                    </div>
+                    <span className="text-sm font-medium text-gray-800 max-w-[140px] truncate hidden sm:block">
+                      {user.email}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center space-x-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
+                    title="Déconnexion"
+                  >
+                    <FiLogOut className="w-4 h-4" />
+                    <span className="hidden sm:block">Déconnexion</span>
+                  </button>
+                </>
+              ) : (
+                // Utilisateur non connecté : affiche Dashboard + Connexion
+                <>
+                  <Link
+                    href="/dashboard"
+                    className="px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors flex items-center space-x-1.5"
+                  >
+                    <FiBarChart2 className="w-4 h-4" />
+                    <span>Dashboard</span>
+                  </Link>
+                  <Link
+                    href="/login"
+                    className="ml-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm"
+                  >
+                    Connexion
+                  </Link>
+                </>
+              )}
             </motion.div>
           </div>
         </div>
@@ -138,6 +196,14 @@ export default function HomePage() {
               Transformez vos longues URLs en liens courts et élégants.
               Suivez vos statistiques et générez des QR codes instantanément.
             </p>
+
+            {/* Badge connecté */}
+            {user && (
+              <div className="inline-flex items-center space-x-2 bg-green-50 border border-green-200 text-green-700 text-sm font-medium px-4 py-2 rounded-full mb-4">
+                <div className="w-2 h-2 bg-green-500 rounded-full" />
+                <span>Connecté — vos liens seront sauvegardés dans votre dashboard</span>
+              </div>
+            )}
           </motion.div>
 
           {/* Formulaire principal */}
@@ -145,7 +211,7 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="max-w-3xl mx-auto mt-12"
+            className="max-w-3xl mx-auto mt-8"
           >
             <form onSubmit={handleShorten} className="bg-white rounded-2xl shadow-xl p-6 border border-gray-200">
               <div className="space-y-4">
@@ -172,7 +238,7 @@ export default function HomePage() {
                   </label>
                   <div className="flex items-center gap-2">
                     <span className="text-gray-600 text-sm font-medium bg-gray-100 px-3 py-3 rounded-xl border border-gray-200 whitespace-nowrap">
-                      konekte.io/
+                      url-shortener.io/
                     </span>
                     <input
                       type="text"
@@ -208,6 +274,16 @@ export default function HomePage() {
                     </>
                   )}
                 </button>
+
+                {/* Message si non connecté */}
+                {!user && (
+                  <p className="text-center text-xs text-gray-500">
+                    <Link href="/login" className="text-indigo-600 font-semibold hover:underline">
+                      Connectez-vous
+                    </Link>{' '}
+                    pour sauvegarder vos liens et accéder aux statistiques
+                  </p>
+                )}
               </div>
             </form>
 
@@ -220,9 +296,21 @@ export default function HomePage() {
                   exit={{ opacity: 0, y: -20 }}
                   className="mt-6 bg-white rounded-2xl shadow-xl p-6 border border-gray-200"
                 >
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">
-                    Ton lien est prêt !
-                  </h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-gray-900">
+                      Ton lien est prêt !
+                    </h3>
+                    {user && (
+                      <Link
+                        href="/dashboard"
+                        className="text-sm font-semibold text-indigo-600 hover:underline flex items-center space-x-1"
+                      >
+                        <FiBarChart2 className="w-4 h-4" />
+                        <span>Voir le dashboard</span>
+                      </Link>
+                    )}
+                  </div>
+
                   <div className="flex flex-col sm:flex-row gap-3 mb-6">
                     <input
                       readOnly
