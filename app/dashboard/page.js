@@ -93,23 +93,39 @@ export default function DashboardPage() {
       dailyClicks: clickData
     });
   };
+useEffect(() => {
+  const getUser = async () => {
+    try {
+      console.log('🔍 Vérification auth...');
+      const { data: { user }, error } = await supabase.auth.getUser();
+      
+      console.log('👤 Utilisateur:', user);
+      console.log('❌ Erreur:', error);
 
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
+      if (error) {
+        console.error('Erreur auth:', error);
         router.push('/login');
         return;
       }
 
+      if (!user) {
+        console.log('🚫 Pas d\'utilisateur -> redirection login');
+        router.push('/login');
+        return;
+      }
+
+      console.log('✅ Utilisateur connecté:', user.email);
       setUser(user);
       await fetchLinks(user.id);
       setLoading(false);
-    };
+    } catch (err) {
+      console.error('Exception:', err);
+      router.push('/login');
+    }
+  };
 
-    getUser();
-  }, [router]);
+  getUser();
+}, [router]);
 
   const handleDelete = async (id) => {
     if (confirm('Voulez-vous vraiment désactiver ce lien ?')) {
