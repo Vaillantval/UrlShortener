@@ -164,7 +164,7 @@ Ce projet est sous licence MIT.
 ## 📞 Contact
 
 Pour toute question ou suggestion, n'hésitez pas à ouvrir une issue sur GitHub.
-
+Valcin & Ben
 ---
 
 Développé avec ❤️ pour simplifier le partage de liens
