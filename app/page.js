@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import QRCode from 'qrcode.react';
+import Link from 'next/link';
+import { QRCodeCanvas } from 'qrcode.react';
 
 export default function HomePage() {
   const [url, setUrl] = useState('');
@@ -117,37 +118,37 @@ export default function HomePage() {
         </form>
 
         {/* Résultat */}
-        {result && (
-          <div className="mt-6 bg-white rounded-2xl shadow-lg p-8">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Ton lien est prêt !</h3>
-            <div className="flex items-center gap-3 mb-6">
-              <input
-                readOnly
-                value={result.shortUrl}
-                className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-blue-600 font-mono"
-              />
-              <button
-                onClick={handleCopy}
-                className="px-4 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition"
-              >
-                {copied ? '✓ Copié' : 'Copier'}
-              </button>
-            </div>
+      {result && (
+    <div className="mt-6 bg-white rounded-2xl shadow-lg p-8">
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">Ton lien est prêt !</h3>
+      <div className="flex items-center gap-3 mb-6">
+        <input
+          readOnly
+          value={result.shortUrl}
+          className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-blue-600 font-mono"
+        />
+        <button
+          onClick={handleCopy}
+          className="px-4 py-3 bg-green-500 text-white rounded-xl hover:bg-green-600 transition"
+        >
+          {copied ? '✓ Copié' : 'Copier'}
+        </button>
+      </div>
 
-            {/* QR Code */}
-            <div className="flex flex-col items-center">
-              <p className="text-sm text-gray-500 mb-3">QR Code</p>
-              <QRCode
-                value={result.shortUrl}
-                size={200}
-                level="H"
-                includeMargin={true}
-                className="border border-gray-100 rounded-lg p-2"
-              />
-              <p className="text-xs text-gray-400 mt-2">Scanne pour ouvrir le lien</p>
-            </div>
-          </div>
-        )}
+      {/* QR Code - CHANGEMENT ICI AUSSI */}
+      <div className="flex flex-col items-center">
+        <p className="text-sm text-gray-500 mb-3">QR Code</p>
+        <QRCodeCanvas  // <-- Au lieu de QRCode
+          value={result.shortUrl}
+          size={200}
+          level="H"
+          includeMargin={true}
+          className="border border-gray-100 rounded-lg p-2"
+        />
+        <p className="text-xs text-gray-400 mt-2">Scanne pour ouvrir le lien</p>
+      </div>
+    </div>
+  )}
       </div>
     </main>
   );
