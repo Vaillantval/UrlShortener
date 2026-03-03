@@ -2,6 +2,12 @@ import { NextResponse } from 'next/server';
 import { notFound } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 
+function getDeviceType(ua = '') {
+  if (/tablet|ipad/i.test(ua)) return 'Tablette';
+  if (/mobile|iphone|ipod|android/i.test(ua)) return 'Mobile';
+  return 'Desktop';
+}
+
 export async function GET(request, { params }) {
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -22,7 +28,17 @@ export async function GET(request, { params }) {
     notFound();
   }
 
-  // Incrémente le compteur (non-bloquant)
+  const ua = request.headers.get('user-agent') ?? '';
+  const deviceType = getDeviceType(ua);
+  const referrer = request.headers.get('referer') ?? null;
+
+  // Enregistre le clic et incrémente le compteur (non-bloquant)
+  void supabase.from('clicks').insert({
+    short_code: shortCode,
+    device_type: deviceType,
+    referrer: referrer,
+  });
+
   void supabase
     .from('links')
     .update({ click_count: (link.click_count || 0) + 1 })

@@ -37,24 +37,10 @@ import {
   Cell,
 } from 'recharts';
 
-// Données d'exemple pour les graphiques (en attente d'analytics réels)
-const CLICK_DATA = [
-  { day: 'Lun', clicks: 45 },
-  { day: 'Mar', clicks: 52 },
-  { day: 'Mer', clicks: 38 },
-  { day: 'Jeu', clicks: 47 },
-  { day: 'Ven', clicks: 63 },
-  { day: 'Sam', clicks: 28 },
-  { day: 'Dim', clicks: 32 },
-];
-
-const DEVICE_DATA = [
-  { name: 'Mobile', value: 65 },
-  { name: 'Desktop', value: 25 },
-  { name: 'Tablette', value: 10 },
-];
+const CHART_COLORS_MAP = { Mobile: '#6366f1', Desktop: '#8b5cf6', Tablette: '#ec4899' };
 
 const CHART_COLORS = ['#6366f1', '#8b5cf6', '#ec4899'];
+const DAYS_FR = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 
 function computeStats(links) {
   const total = links.reduce((sum, l) => sum + (l.click_count || 0), 0);
@@ -84,6 +70,8 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState('grid');
   const [filter, setFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date');
+  const [clickData, setClickData] = useState([]);
+  const [deviceData, setDeviceData] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -115,6 +103,44 @@ export default function DashboardPage() {
         const linksData = data || [];
         setLinks(linksData);
         setStats(computeStats(linksData));
+
+        // Fetch des clics des 7 derniers jours
+        if (linksData.length > 0) {
+          const shortCodes = linksData.map((l) => l.short_code);
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+          const { data: clicksRaw } = await supabase
+            .from('clicks')
+            .select('clicked_at, device_type')
+            .in('short_code', shortCodes)
+            .gte('clicked_at', sevenDaysAgo.toISOString());
+
+          if (clicksRaw && !cancelled) {
+            // Graphe ligne : clics par jour
+            const dayMap = {};
+            for (let i = 6; i >= 0; i--) {
+              const d = new Date();
+              d.setDate(d.getDate() - i);
+              const key = d.toISOString().split('T')[0];
+              dayMap[key] = { day: DAYS_FR[d.getDay()], clicks: 0 };
+            }
+            clicksRaw.forEach((c) => {
+              const key = c.clicked_at.split('T')[0];
+              if (dayMap[key]) dayMap[key].clicks++;
+            });
+            setClickData(Object.values(dayMap));
+
+            // Graphe camembert : répartition appareils
+            const deviceMap = {};
+            clicksRaw.forEach((c) => {
+              const d = c.device_type || 'Desktop';
+              deviceMap[d] = (deviceMap[d] || 0) + 1;
+            });
+            setDeviceData(Object.entries(deviceMap).map(([name, value]) => ({ name, value })));
+          }
+        }
+
         setLoading(false);
       } catch {
         if (!cancelled) router.push('/login');
@@ -348,10 +374,10 @@ export default function DashboardPage() {
             className="lg:col-span-2 bg-white rounded-xl p-6 border border-gray-200 shadow-sm"
           >
             <h3 className="text-base font-semibold text-gray-900 mb-1">Clics des 7 derniers jours</h3>
-            <p className="text-xs text-gray-400 mb-4">Données d&apos;exemple</p>
+            <p className="text-xs text-gray-400 mb-4">{clickData.every(d => d.clicks === 0) ? 'Aucun clic enregistré' : ''}</p>
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={CLICK_DATA}>
+                <LineChart data={clickData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="day" stroke="#374151" tick={{ fontSize: 12, fill: '#374151' }} />
                   <YAxis stroke="#374151" tick={{ fontSize: 12, fill: '#374151' }} />
@@ -368,12 +394,12 @@ export default function DashboardPage() {
             className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm"
           >
             <h3 className="text-base font-semibold text-gray-900 mb-1">Appareils utilisés</h3>
-            <p className="text-xs text-gray-400 mb-4">Données d&apos;exemple</p>
+            <p className="text-xs text-gray-400 mb-4">{deviceData.length === 0 ? 'Aucun clic enregistré' : ''}</p>
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={DEVICE_DATA}
+                    data={deviceData}
                     cx="50%"
                     cy="50%"
                     innerRadius={55}
@@ -381,8 +407,8 @@ export default function DashboardPage() {
                     paddingAngle={5}
                     dataKey="value"
                   >
-                    {DEVICE_DATA.map((_, index) => (
-                      <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    {deviceData.map((entry, index) => (
+                      <Cell key={index} fill={CHART_COLORS_MAP[entry.name] ?? CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -390,9 +416,9 @@ export default function DashboardPage() {
               </ResponsiveContainer>
             </div>
             <div className="flex justify-center space-x-4 mt-2">
-              {DEVICE_DATA.map((item, index) => (
+              {deviceData.map((item, index) => (
                 <div key={item.name} className="flex items-center space-x-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS[index] }} />
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS_MAP[item.name] ?? CHART_COLORS[index % CHART_COLORS.length] }} />
                   <span className="text-xs font-medium text-gray-700">{item.name}</span>
                 </div>
               ))}
