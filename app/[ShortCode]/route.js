@@ -18,7 +18,13 @@ export async function GET(request, { params }) {
     .single();
 
   if (error || !link) {
-    notFound();
+    return NextResponse.json({
+      shortCode,
+      hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      error: error?.message ?? null,
+      link,
+    }, { status: 404 });
   }
 
   // Incrémente le compteur (non-bloquant)
