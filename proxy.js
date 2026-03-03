@@ -1,29 +1,58 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
-import { NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr'
+import { NextResponse } from 'next/server'
 
-// Changement 1: Le nom de la fonction passe de "middleware" à "proxy"
 export async function proxy(req) {
-  const res = NextResponse.next();
-  const supabase = createMiddlewareClient({ req, res });
-  
-  const { data: { session } } = await supabase.auth.getSession();
+  let res = NextResponse.next({
+    request: {
+      headers: req.headers,
+    },
+  })
 
-  // Si pas de session et qu'on essaie d'accéder au dashboard
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        get(name) {
+          return req.cookies.get(name)?.value
+        },
+        set(name, value, options) {
+          req.cookies.set({ name, value, ...options })
+          res = NextResponse.next({
+            request: {
+              headers: req.headers,
+            },
+          })
+          res.cookies.set({ name, value, ...options })
+        },
+        remove(name, options) {
+          req.cookies.set({ name, value: '', ...options })
+          res = NextResponse.next({
+            request: {
+              headers: req.headers,
+            },
+          })
+          res.cookies.set({ name, value: '', ...options })
+        },
+      },
+    }
+  )
+
+  const { data: { session } } = await supabase.auth.getSession()
+
   if (!session && req.nextUrl.pathname.startsWith('/dashboard')) {
-    const redirectUrl = new URL('/login', req.url);
-    return NextResponse.redirect(redirectUrl);
+    const redirectUrl = new URL('/login', req.url)
+    return NextResponse.redirect(redirectUrl)
   }
 
-  // Si session existante et qu'on essaie d'accéder à login
   if (session && req.nextUrl.pathname === '/login') {
-    const redirectUrl = new URL('/dashboard', req.url);
-    return NextResponse.redirect(redirectUrl);
+    const redirectUrl = new URL('/dashboard', req.url)
+    return NextResponse.redirect(redirectUrl)
   }
 
-  return res;
+  return res
 }
 
-// Changement 2: La configuration reste la même
 export const config = {
   matcher: ['/dashboard/:path*', '/login']
-};
+}
