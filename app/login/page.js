@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -17,15 +17,24 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        router.replace('/dashboard');
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [router]);
+
   const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ 
-          email, 
-          password 
+        const { error } = await supabase.auth.signUp({
+          email,
+          password
         });
         if (error) {
           toast.error(error.message);
@@ -33,15 +42,14 @@ export default function LoginPage() {
           toast.success('Vérifie ton email pour confirmer ton compte !');
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ 
-          email, 
-          password 
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password
         });
         if (error) {
           toast.error(error.message);
         } else {
           toast.success('Connexion réussie !');
-          router.push('/dashboard');
         }
       }
     } catch (err) {
@@ -98,7 +106,7 @@ export default function LoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="vous@exemple.com"
                   required
-                  className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white/50"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white text-gray-900 placeholder-gray-400"
                 />
               </div>
             </div>
@@ -115,7 +123,7 @@ export default function LoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white/50"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-white text-gray-900 placeholder-gray-400"
                 />
                 <button
                   type="button"
