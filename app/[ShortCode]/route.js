@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
+import { notFound } from 'next/navigation'; // 👈 importe ça
 import { supabase } from '@/lib/supabase';
 
 export async function GET(request, { params }) {
-  // 👇 DÉBALLER la Promise params avec await
   const { shortCode } = await params;
   
   console.log('🔍 Redirection pour:', shortCode);
@@ -18,7 +18,7 @@ export async function GET(request, { params }) {
 
   if (error || !link) {
     console.log('❌ Lien non trouvé');
-    return NextResponse.redirect(new URL('/not-found', request.url));
+    notFound(); // 👈 déclenche directement ton not-found.js sans redirect
   }
 
   // Enregistre le clic
