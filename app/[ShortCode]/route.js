@@ -8,7 +8,8 @@ export async function GET(request, { params }) {
     process.env.SUPABASE_SERVICE_ROLE_KEY
   );
 
-  const { shortCode } = await params;
+  const resolvedParams = await params;
+  const { shortCode } = resolvedParams;
 
   const { data: link, error } = await supabase
     .from('links')
@@ -19,11 +20,11 @@ export async function GET(request, { params }) {
 
   if (error || !link) {
     return NextResponse.json({
+      resolvedParams,
       shortCode,
       hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
       hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
       error: error?.message ?? null,
-      link,
     }, { status: 404 });
   }
 
