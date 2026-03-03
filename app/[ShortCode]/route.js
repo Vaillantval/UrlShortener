@@ -32,18 +32,18 @@ export async function GET(request, { params }) {
   const deviceType = getDeviceType(ua);
   const referrer = request.headers.get('referer') ?? null;
 
-  // Enregistre le clic et incrémente le compteur (non-bloquant)
-  void supabase.from('clicks').insert({
-    short_code: shortCode,
-    device_type: deviceType,
-    referrer: referrer,
-  });
+  // Enregistre le clic et incrémente le compteur en parallèle
+  await Promise.all([
+    supabase.from('clicks').insert({
+      short_code: shortCode,
+      device_type: deviceType,
+      referrer: referrer,
+    }),
+    supabase
+      .from('links')
+      .update({ click_count: (link.click_count || 0) + 1 })
+      .eq('short_code', shortCode),
+  ]);
 
-  void supabase
-    .from('links')
-    .update({ click_count: (link.click_count || 0) + 1 })
-    .eq('short_code', shortCode);
-
-  // 302 = temporaire, non mis en cache par le navigateur
   return NextResponse.redirect(link.original_url, { status: 302 });
 }
