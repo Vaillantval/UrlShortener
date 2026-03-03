@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -16,15 +16,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
-        router.replace('/dashboard');
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [router]);
 
   const handleAuth = async (e) => {
     e.preventDefault();
@@ -42,14 +33,14 @@ export default function LoginPage() {
           toast.success('Vérifie ton email pour confirmer ton compte !');
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password
         });
         if (error) {
           toast.error(error.message);
-        } else {
-          toast.success('Connexion réussie !');
+        } else if (data.session) {
+          window.location.href = '/dashboard';
         }
       }
     } catch (err) {
