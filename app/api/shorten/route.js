@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { nanoid } from 'nanoid';
+
+// Client serveur direct — createBrowserClient (lib/supabase.js) est réservé au navigateur
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 export async function POST(request) {
   try {

@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
-import { notFound } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+
+// On crée un client serveur ici directement
+// car createBrowserClient (lib/supabase.js) est réservé au navigateur
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+);
 
 export async function GET(request, { params }) {
   const { shortCode } = await params;
@@ -13,14 +19,16 @@ export async function GET(request, { params }) {
     .single();
 
   if (error || !link) {
-    notFound();
+    // Redirige vers une page 404 personnalisée
+    return NextResponse.redirect(new URL('/not-found', request.url));
   }
 
-  // Incrément du compteur de clics (non-bloquant — la redirection ne doit pas attendre l'analytics)
+  // Incrémente le compteur (non-bloquant)
   void supabase
     .from('links')
     .update({ click_count: (link.click_count || 0) + 1 })
     .eq('short_code', shortCode);
 
-  return NextResponse.redirect(link.original_url, { status: 301 });
+  // 302 = temporaire, non mis en cache par le navigateur
+  return NextResponse.redirect(link.original_url, { status: 302 });
 }
