@@ -6,40 +6,39 @@ export async function POST(request) {
   try {
     const { url, customCode, userId } = await request.json();
 
-    // Validation basique de l'URL
     if (!url) {
-      return NextResponse.json(
-        { error: 'URL requise' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'URL requise' }, { status: 400 });
     }
 
     try {
-      new URL(url); // Vérifie que c'est une URL valide
+      new URL(url);
     } catch {
+      return NextResponse.json({ error: 'URL invalide' }, { status: 400 });
+    }
+
+    // Valide le format du code personnalisé
+    const trimmedCode = customCode?.trim();
+    if (trimmedCode && !/^[a-zA-Z0-9_-]{2,16}$/.test(trimmedCode)) {
       return NextResponse.json(
-        { error: 'URL invalide' },
+        { error: 'Le code doit contenir 2 à 16 caractères (lettres, chiffres, - ou _)' },
         { status: 400 }
       );
     }
 
-    // Génère un code court (custom ou aléatoire)
-    const shortCode = customCode?.trim() || nanoid(6);
+    const shortCode = trimmedCode || nanoid(6);
 
-    // Insère dans Supabase
     const { data, error } = await supabase
       .from('links')
       .insert({
         short_code: shortCode,
         original_url: url,
         user_id: userId || null,
-        custom_alias: !!customCode,
+        custom_alias: !!trimmedCode,
       })
       .select()
       .single();
 
     if (error) {
-      // Code déjà pris
       if (error.code === '23505') {
         return NextResponse.json(
           { error: 'Ce code est déjà utilisé, essaie un autre.' },
@@ -49,20 +48,16 @@ export async function POST(request) {
       throw error;
     }
 
-    const shortUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/${shortCode}`;
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
     return NextResponse.json({
-      shortUrl,
+      shortUrl: `${baseUrl}/${shortCode}`,
       shortCode,
       originalUrl: url,
       id: data.id,
     });
-
   } catch (err) {
-    console.error('Erreur shorten:', err);
-    return NextResponse.json(
-      { error: 'Erreur serveur' },
-      { status: 500 }
-    );
+    console.error('[API /shorten]', err);
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
   }
 }

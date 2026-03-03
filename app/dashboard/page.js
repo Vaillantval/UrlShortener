@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { QRCodeCanvas } from 'qrcode.react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,167 +12,173 @@ import {
   FiTrash2,
   FiLogOut,
   FiBarChart2,
-  FiClock,
   FiMousePointer,
   FiCode,
   FiExternalLink,
   FiHome,
   FiTrendingUp,
-  FiCalendar,
   FiUsers,
   FiEye,
   FiCheckCircle,
   FiXCircle,
-  FiDownload,
-  FiShare2,
-  FiMoreVertical,
   FiPlus,
-  FiGrid,
-  FiList
 } from 'react-icons/fi';
 import { toast, Toaster } from 'react-hot-toast';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
+
+// Données d'exemple pour les graphiques (en attente d'analytics réels)
+const CLICK_DATA = [
+  { day: 'Lun', clicks: 45 },
+  { day: 'Mar', clicks: 52 },
+  { day: 'Mer', clicks: 38 },
+  { day: 'Jeu', clicks: 47 },
+  { day: 'Ven', clicks: 63 },
+  { day: 'Sam', clicks: 28 },
+  { day: 'Dim', clicks: 32 },
+];
+
+const DEVICE_DATA = [
+  { name: 'Mobile', value: 65 },
+  { name: 'Desktop', value: 25 },
+  { name: 'Tablette', value: 10 },
+];
+
+const CHART_COLORS = ['#6366f1', '#8b5cf6', '#ec4899'];
+
+function computeStats(links) {
+  const total = links.reduce((sum, l) => sum + (l.click_count || 0), 0);
+  return {
+    totalClicks: total,
+    uniqueClicks: links.filter((l) => l.click_count > 0).length,
+    avgClicksPerLink: links.length > 0 ? Math.round((total / links.length) * 10) / 10 : 0,
+    topLink: links.reduce(
+      (max, l) => (l.click_count > (max?.click_count || 0) ? l : max),
+      null
+    ),
+  };
+}
 
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
   const [links, setLinks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedQR, setSelectedQR] = useState(null);
-  const [viewMode, setViewMode] = useState('grid');
-  const [filter, setFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('date');
   const [stats, setStats] = useState({
     totalClicks: 0,
     uniqueClicks: 0,
     avgClicksPerLink: 0,
     topLink: null,
-    dailyClicks: []
   });
+  const [loading, setLoading] = useState(true);
+  const [selectedQR, setSelectedQR] = useState(null);
+  const [viewMode, setViewMode] = useState('grid');
+  const [filter, setFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('date');
 
-  const clickData = [
-    { day: 'Lun', clicks: 45 },
-    { day: 'Mar', clicks: 52 },
-    { day: 'Mer', clicks: 38 },
-    { day: 'Jeu', clicks: 47 },
-    { day: 'Ven', clicks: 63 },
-    { day: 'Sam', clicks: 28 },
-    { day: 'Dim', clicks: 32 }
-  ];
+  useEffect(() => {
+    let cancelled = false;
 
-  const deviceData = [
-    { name: 'Mobile', value: 65 },
-    { name: 'Desktop', value: 25 },
-    { name: 'Tablette', value: 10 }
-  ];
+    const initialize = async () => {
+      try {
+        const {
+          data: { user },
+          error,
+        } = await supabase.auth.getUser();
 
-  const COLORS = ['#6366f1', '#8b5cf6', '#ec4899'];
+        if (cancelled) return;
 
-  const fetchLinks = async (userId) => {
-    const { data } = await supabase
-      .from('links')
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+        if (error || !user) {
+          router.push('/login');
+          return;
+        }
 
-    setLinks(data || []);
-    calculateStats(data || []);
-  };
+        setUser(user);
 
-  const calculateStats = (linksData) => {
-    const total = linksData.reduce((sum, l) => sum + (l.click_count || 0), 0);
-    const unique = linksData.filter(l => l.click_count > 0).length;
-    const avg = linksData.length > 0 ? Math.round(total / linksData.length * 10) / 10 : 0;
-    const top = linksData.reduce((max, l) => (l.click_count > (max?.click_count || 0) ? l : max), null);
+        const { data } = await supabase
+          .from('links')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
 
-    setStats({
-      totalClicks: total,
-      uniqueClicks: unique,
-      avgClicksPerLink: avg,
-      topLink: top,
-      dailyClicks: clickData
-    });
-  };
-useEffect(() => {
-  const getUser = async () => {
-    try {
-      console.log('🔍 Vérification auth...');
-      const { data: { user }, error } = await supabase.auth.getUser();
-      
-      console.log('👤 Utilisateur:', user);
-      console.log('❌ Erreur:', error);
+        if (cancelled) return;
 
-      if (error) {
-        console.error('Erreur auth:', error);
-        router.push('/login');
-        return;
+        const linksData = data || [];
+        setLinks(linksData);
+        setStats(computeStats(linksData));
+        setLoading(false);
+      } catch {
+        if (!cancelled) router.push('/login');
       }
+    };
 
-      if (!user) {
-        console.log('🚫 Pas d\'utilisateur -> redirection login');
-        router.push('/login');
-        return;
-      }
+    initialize();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
-      console.log('✅ Utilisateur connecté:', user.email);
-      setUser(user);
-      await fetchLinks(user.id);
-      setLoading(false);
-    } catch (err) {
-      console.error('Exception:', err);
-      router.push('/login');
-    }
-  };
+  const handleDelete = useCallback(
+    async (id) => {
+      if (!confirm('Voulez-vous vraiment désactiver ce lien ?')) return;
 
-  getUser();
-}, [router]);
-
-  const handleDelete = async (id) => {
-    if (confirm('Voulez-vous vraiment désactiver ce lien ?')) {
       const { error } = await supabase
         .from('links')
         .update({ is_active: false })
         .eq('id', id);
 
       if (error) {
-        toast.error('Erreur lors de la suppression');
+        toast.error('Erreur lors de la désactivation');
         return;
       }
 
-      const updatedLinks = links.map(l => l.id === id ? { ...l, is_active: false } : l);
-      setLinks(updatedLinks);
-      calculateStats(updatedLinks);
-      toast.success('Lien désactivé avec succès');
-    }
-  };
+      setLinks((prev) => {
+        const updated = prev.map((l) => (l.id === id ? { ...l, is_active: false } : l));
+        setStats(computeStats(updated));
+        return updated;
+      });
+      toast.success('Lien désactivé');
+    },
+    []
+  );
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await supabase.auth.signOut();
     router.push('/');
-    toast.success('Déconnexion réussie');
-  };
+  }, [router]);
 
-  const copyToClipboard = (text) => {
+  const copyToClipboard = useCallback((text) => {
     navigator.clipboard.writeText(text);
-    toast.success('Copié dans le presse-papier !');
-  };
+    toast.success('Copié !');
+  }, []);
 
-  const filteredLinks = links.filter(link => {
-    if (filter === 'active') return link.is_active;
-    if (filter === 'inactive') return !link.is_active;
-    return true;
-  }).sort((a, b) => {
-    if (sortBy === 'clicks') return (b.click_count || 0) - (a.click_count || 0);
-    if (sortBy === 'name') return a.short_code.localeCompare(b.short_code);
-    return new Date(b.created_at) - new Date(a.created_at);
-  });
+  const filteredLinks = links
+    .filter((link) => {
+      if (filter === 'active') return link.is_active;
+      if (filter === 'inactive') return !link.is_active;
+      return true;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'clicks') return (b.click_count || 0) - (a.click_count || 0);
+      if (sortBy === 'name') return a.short_code.localeCompare(b.short_code);
+      return new Date(b.created_at) - new Date(a.created_at);
+    });
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-700 font-medium">Chargement de votre dashboard...</p>
+          <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-700 font-medium">Chargement du dashboard…</p>
         </div>
       </div>
     );
@@ -189,15 +195,12 @@ useEffect(() => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
 
-            {/* Logo + liens de navigation */}
             <div className="flex items-center space-x-8">
               <Link href="/" className="flex items-center space-x-2 shrink-0">
                 <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center">
                   <FiLink className="text-white w-4 h-4" />
                 </div>
-                <span className="text-lg font-bold text-gray-900">
-                  URL Shortener
-                </span>
+                <span className="text-lg font-bold text-gray-900">URL Shortener</span>
               </Link>
 
               <div className="flex items-center space-x-1">
@@ -215,13 +218,16 @@ useEffect(() => {
               </div>
             </div>
 
-            {/* Côté droit : vue + utilisateur + déconnexion */}
             <div className="flex items-center space-x-4">
-              {/* Toggle vue grille / liste */}
+              {/* Toggle grille / liste */}
               <div className="flex items-center bg-gray-100 rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-1.5 rounded-md transition-colors ${viewMode === 'grid' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+                  className={`p-1.5 rounded-md transition-colors ${
+                    viewMode === 'grid'
+                      ? 'bg-white shadow-sm text-indigo-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
                   title="Vue grille"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -230,7 +236,11 @@ useEffect(() => {
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-1.5 rounded-md transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700'}`}
+                  className={`p-1.5 rounded-md transition-colors ${
+                    viewMode === 'list'
+                      ? 'bg-white shadow-sm text-indigo-600'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
                   title="Vue liste"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -244,14 +254,15 @@ useEffect(() => {
                 <div className="w-6 h-6 bg-indigo-100 rounded-full flex items-center justify-center">
                   <FiUsers className="w-3.5 h-3.5 text-indigo-600" />
                 </div>
-                <span className="text-sm font-medium text-gray-800 max-w-[160px] truncate">{user?.email}</span>
+                <span className="text-sm font-medium text-gray-800 max-w-[160px] truncate">
+                  {user?.email}
+                </span>
               </div>
 
               {/* Déconnexion */}
               <button
                 onClick={handleLogout}
                 className="flex items-center space-x-1.5 px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent hover:border-red-100"
-                title="Déconnexion"
               >
                 <FiLogOut className="w-4 h-4" />
                 <span className="hidden sm:block">Déconnexion</span>
@@ -262,11 +273,14 @@ useEffect(() => {
       </nav>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* En-tête de page */}
+
+        {/* En-tête */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Mes liens</h1>
-            <p className="text-sm text-gray-600 mt-1">{links.length} lien{links.length !== 1 ? 's' : ''} créé{links.length !== 1 ? 's' : ''}</p>
+            <p className="text-sm text-gray-600 mt-1">
+              {links.length} lien{links.length !== 1 ? 's' : ''} créé{links.length !== 1 ? 's' : ''}
+            </p>
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
@@ -306,13 +320,13 @@ useEffect(() => {
             { icon: FiBarChart2, label: 'Liens créés', value: links.length, bg: 'bg-indigo-100', text: 'text-indigo-600' },
             { icon: FiMousePointer, label: 'Clics totaux', value: stats.totalClicks, bg: 'bg-green-100', text: 'text-green-600' },
             { icon: FiTrendingUp, label: 'Moy. clics / lien', value: stats.avgClicksPerLink, bg: 'bg-purple-100', text: 'text-purple-600' },
-            { icon: FiEye, label: 'Liens actifs', value: links.filter(l => l.is_active).length, bg: 'bg-blue-100', text: 'text-blue-600' }
+            { icon: FiEye, label: 'Liens actifs', value: links.filter((l) => l.is_active).length, bg: 'bg-blue-100', text: 'text-blue-600' },
           ].map((stat, index) => (
             <motion.div
-              key={index}
+              key={stat.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ delay: index * 0.08 }}
               className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
             >
               <div className="flex items-center justify-between mb-3">
@@ -334,10 +348,10 @@ useEffect(() => {
             className="lg:col-span-2 bg-white rounded-xl p-6 border border-gray-200 shadow-sm"
           >
             <h3 className="text-base font-semibold text-gray-900 mb-1">Clics des 7 derniers jours</h3>
-            <p className="text-xs text-gray-500 mb-4">Données d&apos;exemple</p>
+            <p className="text-xs text-gray-400 mb-4">Données d&apos;exemple</p>
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={clickData}>
+                <LineChart data={CLICK_DATA}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="day" stroke="#374151" tick={{ fontSize: 12, fill: '#374151' }} />
                   <YAxis stroke="#374151" tick={{ fontSize: 12, fill: '#374151' }} />
@@ -354,12 +368,12 @@ useEffect(() => {
             className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm"
           >
             <h3 className="text-base font-semibold text-gray-900 mb-1">Appareils utilisés</h3>
-            <p className="text-xs text-gray-500 mb-4">Données d&apos;exemple</p>
+            <p className="text-xs text-gray-400 mb-4">Données d&apos;exemple</p>
             <div className="h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={deviceData}
+                    data={DEVICE_DATA}
                     cx="50%"
                     cy="50%"
                     innerRadius={55}
@@ -367,8 +381,8 @@ useEffect(() => {
                     paddingAngle={5}
                     dataKey="value"
                   >
-                    {deviceData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    {DEVICE_DATA.map((_, index) => (
+                      <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                   </Pie>
                   <Tooltip />
@@ -376,9 +390,9 @@ useEffect(() => {
               </ResponsiveContainer>
             </div>
             <div className="flex justify-center space-x-4 mt-2">
-              {deviceData.map((item, index) => (
-                <div key={index} className="flex items-center space-x-1.5">
-                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[index] }} />
+              {DEVICE_DATA.map((item, index) => (
+                <div key={item.name} className="flex items-center space-x-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CHART_COLORS[index] }} />
                   <span className="text-xs font-medium text-gray-700">{item.name}</span>
                 </div>
               ))}
@@ -395,7 +409,11 @@ useEffect(() => {
           <div className="px-6 py-4 border-b border-gray-100">
             <h3 className="text-base font-semibold text-gray-900">
               {filteredLinks.length} lien{filteredLinks.length !== 1 ? 's' : ''}
-              {filter !== 'all' && <span className="ml-1 text-gray-500 font-normal">({filter === 'active' ? 'actifs' : 'inactifs'})</span>}
+              {filter !== 'all' && (
+                <span className="ml-1 text-gray-500 font-normal">
+                  ({filter === 'active' ? 'actifs' : 'inactifs'})
+                </span>
+              )}
             </h3>
           </div>
 
@@ -406,7 +424,9 @@ useEffect(() => {
               </div>
               <p className="text-gray-800 font-medium mb-1">Aucun lien trouvé</p>
               <p className="text-gray-500 text-sm mb-6">
-                {filter !== 'all' ? 'Changez le filtre pour voir plus de liens' : 'Créez votre premier lien pour commencer'}
+                {filter !== 'all'
+                  ? 'Changez le filtre pour voir plus de liens'
+                  : 'Créez votre premier lien pour commencer'}
               </p>
               {filter === 'all' && (
                 <Link
@@ -499,11 +519,7 @@ useEffect(() => {
                         className="mt-3 flex justify-center"
                       >
                         <div className="bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
-                          <QRCodeCanvas
-                            value={`${baseUrl}/${link.short_code}`}
-                            size={120}
-                            level="H"
-                          />
+                          <QRCodeCanvas value={`${baseUrl}/${link.short_code}`} size={120} level="H" />
                         </div>
                       </motion.div>
                     )}
@@ -587,11 +603,7 @@ useEffect(() => {
                         {selectedQR === link.id && (
                           <div className="mt-2 flex justify-center">
                             <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
-                              <QRCodeCanvas
-                                value={`${baseUrl}/${link.short_code}`}
-                                size={80}
-                                level="H"
-                              />
+                              <QRCodeCanvas value={`${baseUrl}/${link.short_code}`} size={80} level="H" />
                             </div>
                           </div>
                         )}

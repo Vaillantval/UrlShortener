@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
-import { notFound } from 'next/navigation'; 
+import { notFound } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 export async function GET(request, { params }) {
   const { shortCode } = await params;
-  
-  console.log('🔍 Redirection pour:', shortCode);
 
   const { data: link, error } = await supabase
     .from('links')
@@ -14,24 +12,15 @@ export async function GET(request, { params }) {
     .eq('is_active', true)
     .single();
 
-  console.log('📦 Lien trouvé:', link);
-
   if (error || !link) {
-    console.log('❌ Lien non trouvé');
-    notFound(); 
+    notFound();
   }
 
-  // Enregistre le clic
-  supabase
-    .from('clics')
-    .insert({ short_code: shortCode })
-    .then(() => {
-      supabase
-        .from('links')
-        .update({ click_count: link.click_count + 1 })
-        .eq('short_code', shortCode);
-    });
+  // Incrément du compteur de clics (non-bloquant — la redirection ne doit pas attendre l'analytics)
+  void supabase
+    .from('links')
+    .update({ click_count: (link.click_count || 0) + 1 })
+    .eq('short_code', shortCode);
 
-  console.log('✅ Redirection vers:', link.original_url);
-  return NextResponse.redirect(link.original_url);
+  return NextResponse.redirect(link.original_url, { status: 301 });
 }
