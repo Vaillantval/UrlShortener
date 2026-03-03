@@ -9,7 +9,7 @@ export async function GET(request, { params }) {
   );
 
   const resolvedParams = await params;
-  const { shortCode } = resolvedParams;
+  const shortCode = resolvedParams.ShortCode ?? resolvedParams.shortCode;
 
   const { data: link, error } = await supabase
     .from('links')
@@ -19,13 +19,7 @@ export async function GET(request, { params }) {
     .single();
 
   if (error || !link) {
-    return NextResponse.json({
-      resolvedParams,
-      shortCode,
-      hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-      hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-      error: error?.message ?? null,
-    }, { status: 404 });
+    notFound();
   }
 
   // Incrémente le compteur (non-bloquant)
