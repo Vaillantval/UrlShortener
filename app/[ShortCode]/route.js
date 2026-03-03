@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { notFound } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 
 // On crée un client serveur ici directement
@@ -19,8 +20,7 @@ export async function GET(request, { params }) {
     .single();
 
   if (error || !link) {
-    // Redirige vers une page 404 personnalisée
-    return NextResponse.redirect(new URL('/not-found', request.url));
+    notFound();
   }
 
   // Incrémente le compteur (non-bloquant)

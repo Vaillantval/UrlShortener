@@ -40,6 +40,7 @@ export async function POST(request) {
         original_url: url,
         user_id: userId || null,
         custom_alias: !!trimmedCode,
+        is_active: true,
       })
       .select()
       .single();
