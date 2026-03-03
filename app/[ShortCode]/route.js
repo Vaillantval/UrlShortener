@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { notFound } from 'next/navigation'; // 👈 importe ça
+import { notFound } from 'next/navigation'; 
 import { supabase } from '@/lib/supabase';
 
 export async function GET(request, { params }) {
@@ -18,7 +18,7 @@ export async function GET(request, { params }) {
 
   if (error || !link) {
     console.log('❌ Lien non trouvé');
-    notFound(); // 👈 déclenche directement ton not-found.js sans redirect
+    notFound(); 
   }
 
   // Enregistre le clic

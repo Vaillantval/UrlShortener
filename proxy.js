@@ -1,7 +1,8 @@
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse } from 'next/server';
 
-export async function middleware(req) {
+// Changement 1: Le nom de la fonction passe de "middleware" à "proxy"
+export async function proxy(req) {
   const res = NextResponse.next();
   const supabase = createMiddlewareClient({ req, res });
   
@@ -22,6 +23,7 @@ export async function middleware(req) {
   return res;
 }
 
+// Changement 2: La configuration reste la même
 export const config = {
   matcher: ['/dashboard/:path*', '/login']
 };
