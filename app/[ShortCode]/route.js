@@ -2,13 +2,12 @@ import { NextResponse } from 'next/server';
 import { notFound } from 'next/navigation';
 import { createClient } from '@supabase/supabase-js';
 
-// Service role key — bypass RLS pour les opérations serveur
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
 export async function GET(request, { params }) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+
   const { shortCode } = await params;
 
   const { data: link, error } = await supabase
