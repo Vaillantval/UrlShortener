@@ -19,18 +19,14 @@ export default async function middleware(req) {
         set(name, value, options) {
           req.cookies.set({ name, value, ...options })
           res = NextResponse.next({
-            request: {
-              headers: req.headers,
-            },
+            request: { headers: req.headers },
           })
           res.cookies.set({ name, value, ...options })
         },
         remove(name, options) {
           req.cookies.set({ name, value: '', ...options })
           res = NextResponse.next({
-            request: {
-              headers: req.headers,
-            },
+            request: { headers: req.headers },
           })
           res.cookies.set({ name, value: '', ...options })
         },
@@ -38,21 +34,27 @@ export default async function middleware(req) {
     }
   )
 
-  const { data: { session } } = await supabase.auth.getSession()
+  // getUser() est plus fiable que getSession() côté serveur
+  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!session && req.nextUrl.pathname.startsWith('/dashboard')) {
-    const redirectUrl = new URL('/login', req.url)
-    return NextResponse.redirect(redirectUrl)
+  const { pathname } = req.nextUrl
+
+  // Protège /dashboard — redirige vers /login si pas connecté
+  if (!user && pathname.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/login', req.url))
   }
 
-  if (session && req.nextUrl.pathname === '/login') {
-    const redirectUrl = new URL('/dashboard', req.url)
-    return NextResponse.redirect(redirectUrl)
+  // Évite d'aller sur /login si déjà connecté
+  if (user && pathname === '/login') {
+    return NextResponse.redirect(new URL('/dashboard', req.url))
   }
 
   return res
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/login']
+  // Exclut fichiers statiques, images et routes API pour éviter les boucles
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|api/).*)',
+  ],
 }
