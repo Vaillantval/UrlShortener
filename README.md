@@ -11,9 +11,10 @@ UrlShortener est une application de raccourcissement de liens moderne construite
 - 🔗 **Raccourcissement de liens** — Transformez n'importe quelle URL longue en lien court
 - 🎨 **Alias personnalisés** — Créez des liens personnalisés faciles à retenir
 - 📊 **Dashboard utilisateur** — Gérez tous vos liens en un seul endroit
-- 📱 **Génération de QR codes** — Chaque lien court génère automatiquement son QR code
-- 📈 **Analytics réels** — Suivi des clics par jour et par type d'appareil (Mobile / Desktop / Tablette)
+- 📱 **Génération de QR codes** — Chaque lien court génère automatiquement son QR code (interface + API)
+- 📈 **Analytics réels** — Suivi des clics par jour, par pays et par type d'appareil (Mobile / Desktop / Tablette)
 - 🔐 **Authentification** — Email/mot de passe et connexion Google via Supabase Auth
+- 🛡️ **Protection Cloudflare** — CDN mondial, DDoS, SSL automatique et rate limiting
 - 📲 **Responsive** — Interface optimisée mobile et desktop
 
 ---
@@ -27,6 +28,7 @@ UrlShortener est une application de raccourcissement de liens moderne construite
 - **Graphiques** : Recharts
 - **Animations** : Framer Motion
 - **Déploiement** : Vercel
+- **CDN / DNS / Sécurité** : Cloudflare (DNS, SSL, CDN, WAF, Rate Limiting)
 - **Domaine** : urls.lat
 
 ---
@@ -37,6 +39,7 @@ UrlShortener est une application de raccourcissement de liens moderne construite
 - npm ou yarn
 - Compte Supabase (gratuit)
 - Compte Vercel (gratuit) pour le déploiement
+- Compte Cloudflare (gratuit) pour DNS et sécurité
 
 ---
 
@@ -84,8 +87,14 @@ UrlShortener est une application de raccourcissement de liens moderne construite
 urlshortener/
 ├── app/
 │   ├── api/
-│   │   └── shorten/
-│   │       └── route.js          # API de raccourcissement (POST)
+│   │   ├── shorten/
+│   │   │   └── route.js          # API de raccourcissement (POST)
+│   │   ├── qr/
+│   │   │   └── [shortCode]/
+│   │   │       └── route.js      # QR Code image PNG (GET)
+│   │   └── stats/
+│   │       └── [shortCode]/
+│   │           └── route.js      # Statistiques par lien (GET)
 │   ├── [ShortCode]/
 │   │   └── route.js              # Route de redirection + enregistrement des clics
 │   ├── auth/
@@ -132,8 +141,8 @@ CREATE TABLE public.clicks (
   id          bigserial PRIMARY KEY,
   short_code  varchar NOT NULL,
   clicked_at  timestamptz DEFAULT now(),
-  country     varchar,
-  device_type varchar,
+  country     varchar,   -- code ISO injecté par Cloudflare (cf-ipcountry)
+  device_type varchar,   -- "mobile" ou "desktop"
   referrer    text,
   is_unique   boolean DEFAULT true
 );
@@ -182,6 +191,48 @@ USING (short_code IN (
 
 ---
 
+## 📡 API
+
+| Méthode | Endpoint | Auth | Description |
+|---------|----------|------|-------------|
+| `POST` | `/api/shorten` | Optionnelle | Créer un lien court |
+| `GET` | `/{shortCode}` | Aucune | Redirection 302 vers l'URL originale |
+| `GET` | `/api/qr/{shortCode}` | Aucune | Image PNG du QR Code |
+| `GET` | `/api/stats/{shortCode}` | Aucune | Statistiques du lien |
+
+Voir [API.md](./API.md) pour la documentation complète des endpoints.
+
+---
+
+## 🛡️ Configuration Cloudflare
+
+Le domaine `urls.lat` est géré par Cloudflare en frontal de Vercel.
+
+### Architecture du trafic
+```
+Utilisateur → Cloudflare (DNS · CDN · SSL · WAF) → Vercel (Next.js) → Supabase
+```
+
+### DNS
+```
+CNAME  @  →  cname.vercel-dns.com  (Proxied ON)
+```
+
+### SSL/TLS
+- Mode : **Full**
+- Certificat : Let's Encrypt ECDSA SHA384, auto-renouvelé par Cloudflare
+
+### Rate Limiting (WAF)
+Règle combinée sur les endpoints API — **10 requêtes / 10 secondes / IP** :
+```
+(http.request.uri.path starts_with "/api/shorten")
+OR (http.request.uri.path starts_with "/api/qr")
+OR (http.request.uri.path starts_with "/api/stats")
+```
+> Les redirections `/{shortCode}` ne sont **pas** soumises au rate limiting.
+
+---
+
 ## 🔐 Configuration Google OAuth
 
 1. **Google Cloud Console** → APIs & Services → Credentials → OAuth 2.0 Client :
@@ -212,11 +263,7 @@ USING (short_code IN (
 
 4. Cliquez sur **Deploy**
 
----
-
-## 📡 API
-
-Voir [API.md](./API.md) pour la documentation complète des endpoints.
+> ⚠️ Le DNS doit pointer vers Cloudflare, qui proxy ensuite vers `cname.vercel-dns.com`.
 
 ---
 
