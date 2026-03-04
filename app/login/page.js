@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { FiMail, FiLock, FiLink, FiArrowRight, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiMail, FiLock, FiLink, FiArrowRight, FiArrowLeft, FiEye, FiEyeOff } from 'react-icons/fi';
 import { toast, Toaster } from 'react-hot-toast';
 
 export default function LoginPage() {
@@ -67,6 +67,17 @@ export default function LoginPage() {
         transition={{ duration: 0.5 }}
         className="relative z-10 w-full max-w-md"
       >
+        {/* Retour accueil */}
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-indigo-600 transition-colors mb-5 group"
+        >
+          <span className="w-8 h-8 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center group-hover:border-indigo-300 group-hover:bg-indigo-50 transition-all">
+            <FiArrowLeft className="w-3.5 h-3.5" />
+          </span>
+          <span>Retour à l'accueil</span>
+        </Link>
+
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-200">
 
           {/* Logo */}
