@@ -55,6 +55,6 @@ export default async function middleware(req) {
 export const config = {
   // Exclut fichiers statiques, images et routes API pour éviter les boucles
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api/).*)',
+    '/((?!_next/static|_next/image|favicon.ico|api/|auth/callback).*)',
   ],
 }
