@@ -15,6 +15,79 @@ import {
   FiChevronRight,
 } from 'react-icons/fi';
 
+/* ─── syntax highlighting ─── */
+
+// Ordered token rules: [regex, tailwind-class]
+const LANG_RULES = {
+  javascript: [
+    [/\/\/[^\n]*/,                                                   'text-gray-500 italic'],
+    [/`(?:[^`\\]|\\.)*`|'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/,      'text-green-400'],
+    [/\b(const|let|var|await|async|function|return|if|else|for|of|in|import|export|from|default|new|typeof|null|undefined|true|false|throw|try|catch|finally)\b/, 'text-purple-400'],
+    [/\b(JSON|console|fetch|URL|document|window|Object|Array|Promise|Math|Response)\b/, 'text-orange-300'],
+    [/\b[A-Za-z_$][\w$]*(?=\s*\()/,                                 'text-yellow-300'],
+    [/\b\d+(?:\.\d+)?\b/,                                            'text-orange-300'],
+    [/\b[A-Za-z_$][\w$]*\b/,                                         'text-blue-300'],
+  ],
+  python: [
+    [/#[^\n]*/,                                                      'text-gray-500 italic'],
+    [/f'(?:[^'\\]|\\.)*'|f"(?:[^"\\]|\\.)*"/,                       'text-green-400'],
+    [/'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"/,                         'text-green-400'],
+    [/\b(import|from|def|class|return|if|elif|else|for|while|with|as|in|not|and|or|True|False|None|async|await|raise|try|except|finally|print)\b/, 'text-purple-400'],
+    [/\b[a-zA-Z_][\w]*(?=\s*\()/,                                   'text-yellow-300'],
+    [/\b\d+(?:\.\d+)?\b/,                                            'text-orange-300'],
+  ],
+  bash: [
+    [/#[^\n]*/,                                                      'text-gray-500 italic'],
+    [/'[^']*'|"(?:[^"\\]|\\.)*"/,                                   'text-green-400'],
+    [/https?:\/\/[^\s'"\\,)]+/,                                      'text-indigo-300'],
+    [/(?:^|\s)(--?[a-zA-Z][-a-zA-Z]*)/,                             'text-blue-400'],
+    [/\b(curl|echo|cat|grep|sed|awk|cd|ls|mkdir|rm|cp|mv)\b/,       'text-yellow-300'],
+    [/\\/,                                                           'text-gray-500'],
+  ],
+  html: [
+    [/<!--[\s\S]*?-->/,                                              'text-gray-500 italic'],
+    [/(<\/?)([a-zA-Z][a-zA-Z0-9]*)/,                                'text-red-400'],
+    [/[a-zA-Z-]+=(?=['"])/,                                         'text-yellow-300'],
+    [/"[^"]*"|'[^']*'/,                                              'text-green-400'],
+    [/[<>/]/,                                                        'text-red-400'],
+  ],
+  php: [
+    [/\/\/[^\n]*|#[^\n]*/,                                           'text-gray-500 italic'],
+    [/'[^']*'|"(?:[^"\\]|\\.)*"/,                                   'text-green-400'],
+    [/\b(echo|if|else|foreach|for|while|function|return|class|new|true|false|null|array)\b/, 'text-purple-400'],
+    [/\$[a-zA-Z_][\w]*/,                                             'text-blue-300'],
+    [/\b[a-zA-Z_][\w]*(?=\s*\()/,                                   'text-yellow-300'],
+    [/\b\d+\b/,                                                      'text-orange-300'],
+  ],
+  json: [
+    [/"[^"]+"\s*(?=:)/,                                              'text-blue-300'],
+    [/"[^"]*"/,                                                       'text-green-400'],
+    [/\b(true|false|null)\b/,                                         'text-purple-400'],
+    [/-?\b\d+(?:\.\d+)?\b/,                                          'text-orange-300'],
+  ],
+};
+
+function tokenize(code, lang) {
+  const rules = LANG_RULES[lang];
+  if (!rules) return [{ text: code, cls: 'text-gray-300' }];
+
+  const combined = new RegExp(rules.map(([r]) => `(${r.source})`).join('|'), 'gm');
+  const tokens = [];
+  let last = 0;
+  let match;
+
+  while ((match = combined.exec(code)) !== null) {
+    if (match.index > last) {
+      tokens.push({ text: code.slice(last, match.index), cls: 'text-gray-300' });
+    }
+    const groupIdx = match.slice(1).findIndex(g => g !== undefined);
+    tokens.push({ text: match[0], cls: rules[groupIdx][1] });
+    last = combined.lastIndex;
+  }
+  if (last < code.length) tokens.push({ text: code.slice(last), cls: 'text-gray-300' });
+  return tokens;
+}
+
 /* ─── helpers ─── */
 
 function Badge({ method }) {
@@ -31,6 +104,7 @@ function Badge({ method }) {
 
 function CodeBlock({ code, language }) {
   const [copied, setCopied] = useState(false);
+  const tokens = tokenize(code, language);
 
   const copy = () => {
     navigator.clipboard.writeText(code);
@@ -54,8 +128,10 @@ function CodeBlock({ code, language }) {
           {copied ? '✓ Copié' : 'Copier'}
         </button>
       </div>
-      <pre className="p-4 text-sm font-mono text-gray-300 overflow-x-auto leading-relaxed whitespace-pre">
-        {code}
+      <pre className="p-4 text-sm font-mono overflow-x-auto leading-relaxed whitespace-pre">
+        {tokens.map((t, i) => (
+          <span key={i} className={t.cls}>{t.text}</span>
+        ))}
       </pre>
     </div>
   );

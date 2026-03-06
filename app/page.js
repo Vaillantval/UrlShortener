@@ -25,6 +25,7 @@ import { supabase } from '@/lib/supabase';
 export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
+  const [origin, setOrigin] = useState('');
   const [url, setUrl] = useState('');
   const [customCode, setCustomCode] = useState('');
   const [result, setResult] = useState(null);
@@ -34,6 +35,7 @@ export default function HomePage() {
 
   // Vérifie si l'utilisateur est connecté au chargement
   useEffect(() => {
+    setOrigin(window.location.origin);
     supabase.auth.getUser().then(({ data: { user } }) => {
       setUser(user);
     });
@@ -468,7 +470,7 @@ export default function HomePage() {
                   <span className="text-purple-400">= await </span>
                   <span className="text-yellow-300">fetch</span>
                   <span className="text-white">(</span>
-                  <span className="text-green-400">&apos;https://urls.lat/api/shorten&apos;</span>
+                  <span className="text-green-400">&apos;{origin || window.location.origin}/api/shorten&apos;</span>
                   <span className="text-white">, {'{'}</span>{'\n'}
                   <span className="text-white">  method: </span>
                   <span className="text-green-400">&apos;POST&apos;</span>
@@ -502,7 +504,7 @@ export default function HomePage() {
                   <span className="text-white">(</span>
                   <span className="text-blue-300">shortUrl</span>
                   <span className="text-white">);</span>{'\n'}
-                  <span className="text-gray-500">{'// → "https://urls.lat/article-1"'}</span>
+                  <span className="text-gray-500">{'// → "'}{origin || 'https://urls.lat'}{'/article-1"'}</span>
                 </pre>
               </div>
             </motion.div>
