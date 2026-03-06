@@ -1,0 +1,31 @@
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import PageTransition from "@/components/PageTransition";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata = {
+  title: "URL Shortener — Raccourcissez vos liens",
+  description:
+    "Transformez vos longues URLs en liens courts et élégants. Suivez vos statistiques et générez des QR codes instantanément.",
+};
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="fr">
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <PageTransition>{children}</PageTransition>
+        <SpeedInsights />
+      </body>
+    </html>
+  );
+}
