@@ -396,7 +396,7 @@ export default function HomePage() {
       <footer className="bg-white border-t border-gray-200 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center text-gray-600 text-sm font-medium">
-            © 2025 URL Shortener — Tous droits réservés
+            © 2026 URL Shortener — Tous droits réservés
           </div>
         </div>
       </footer>
