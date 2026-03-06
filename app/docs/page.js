@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -88,7 +88,9 @@ function Tabs({ tabs, code }) {
 
 /* ─── endpoint data ─── */
 
-const ENDPOINTS = [
+function getEndpoints(base) {
+  const b = base || 'https://urls.lat';
+  return [
   {
     id: 'shorten',
     method: 'POST',
@@ -102,12 +104,12 @@ const ENDPOINTS = [
         { name: 'url',        type: 'string',  required: true,  desc: "L'URL complète à raccourcir (doit commencer par http:// ou https://)" },
         { name: 'customCode', type: 'string',  required: false, desc: 'Alias personnalisé (2-16 caractères : lettres, chiffres, - ou _)' },
         { name: 'userId',     type: 'string',  required: false, desc: "ID utilisateur Supabase — rattache le lien au compte" },
-        { name: 'baseUrl',    type: 'string',  required: false, desc: "Base de l'URL courte générée (ex: https://urls.lat). Utilise la valeur serveur par défaut si absent." },
+        { name: 'baseUrl',    type: 'string',  required: false, desc: `Base de l'URL courte générée (ex: ${b}). Utilise la valeur serveur par défaut si absent.` },
       ],
     },
     response: {
       success: `{
-  "shortUrl":    "https://urls.lat/abc123",
+  "shortUrl":    "${b}/abc123",
   "shortCode":   "abc123",
   "originalUrl": "https://exemple.com/une-url-tres-longue",
   "id":          "uuid-de-lenregistrement"
@@ -125,13 +127,13 @@ const ENDPOINTS = [
       { id: 'php',    label: 'PHP',        lang: 'php' },
     ],
     code: {
-      curl: `curl -X POST https://urls.lat/api/shorten \\
+      curl: `curl -X POST ${b}/api/shorten \\
   -H "Content-Type: application/json" \\
   -d '{
     "url": "https://exemple.com/une-url-tres-longue",
     "customCode": "mon-alias"
   }'`,
-      js: `const response = await fetch('https://urls.lat/api/shorten', {
+      js: `const response = await fetch('${b}/api/shorten', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -141,11 +143,11 @@ const ENDPOINTS = [
 });
 
 const data = await response.json();
-console.log(data.shortUrl); // "https://urls.lat/mon-alias"`,
+console.log(data.shortUrl); // "${b}/mon-alias"`,
       python: `import requests
 
 response = requests.post(
-    'https://urls.lat/api/shorten',
+    '${b}/api/shorten',
     json={
         'url': 'https://exemple.com/une-url-tres-longue',
         'customCode': 'mon-alias',  # optionnel
@@ -153,9 +155,9 @@ response = requests.post(
 )
 
 data = response.json()
-print(data['shortUrl'])  # "https://urls.lat/mon-alias"`,
+print(data['shortUrl'])  # "${b}/mon-alias"`,
       php: `<?php
-$response = file_get_contents('https://urls.lat/api/shorten', false, stream_context_create([
+$response = file_get_contents('${b}/api/shorten', false, stream_context_create([
     'http' => [
         'method'  => 'POST',
         'header'  => "Content-Type: application/json\r\n",
@@ -167,7 +169,7 @@ $response = file_get_contents('https://urls.lat/api/shorten', false, stream_cont
 ]));
 
 $data = json_decode($response, true);
-echo $data['shortUrl']; // "https://urls.lat/mon-alias"`,
+echo $data['shortUrl']; // "${b}/mon-alias"`,
     },
   },
 
@@ -198,13 +200,13 @@ Location: https://exemple.com/une-url-tres-longue`,
     ],
     code: {
       curl: `# Suivre la redirection automatiquement
-curl -L https://urls.lat/mon-alias
+curl -L ${b}/mon-alias
 
 # Voir uniquement les en-têtes (sans suivre)
-curl -I https://urls.lat/mon-alias`,
+curl -I ${b}/mon-alias`,
       js: `// Dans un navigateur, un simple <a href> suffit.
 // Pour récupérer l'URL de destination sans la visiter :
-const res = await fetch('https://urls.lat/mon-alias', {
+const res = await fetch('${b}/mon-alias', {
   method: 'GET',
   redirect: 'manual', // ne pas suivre la redirection
 });
@@ -214,11 +216,11 @@ console.log(res.headers.get('location'));
       python: `import requests
 
 # Suivre la redirection (comportement par défaut)
-r = requests.get('https://urls.lat/mon-alias')
+r = requests.get('${b}/mon-alias')
 print(r.url)  # URL finale après redirection
 
 # Obtenir l'URL de destination sans la visiter
-r = requests.get('https://urls.lat/mon-alias', allow_redirects=False)
+r = requests.get('${b}/mon-alias', allow_redirects=False)
 print(r.headers['Location'])
 # "https://exemple.com/une-url-tres-longue"`,
     },
@@ -256,21 +258,21 @@ Cache-Control: public, max-age=86400
     code: {
       html: `<!-- Afficher directement dans une page web -->
 <img
-  src="https://urls.lat/api/qr/mon-alias"
+  src="${b}/api/qr/mon-alias"
   alt="QR Code"
   width="300"
   height="300"
 />`,
       curl: `# Télécharger le QR code en PNG
-curl -o qrcode.png https://urls.lat/api/qr/mon-alias`,
+curl -o qrcode.png ${b}/api/qr/mon-alias`,
       js: `// Afficher le QR code dans un élément <img>
 const img = document.createElement('img');
-img.src = 'https://urls.lat/api/qr/mon-alias';
+img.src = '${b}/api/qr/mon-alias';
 img.alt = 'QR Code';
 document.body.appendChild(img);
 
 // Ou télécharger le fichier PNG
-const response = await fetch('https://urls.lat/api/qr/mon-alias');
+const response = await fetch('${b}/api/qr/mon-alias');
 const blob = await response.blob();
 const url = URL.createObjectURL(blob);
 const a = document.createElement('a');
@@ -279,7 +281,7 @@ a.download = 'qrcode.png';
 a.click();`,
       python: `import requests
 
-response = requests.get('https://urls.lat/api/qr/mon-alias')
+response = requests.get('${b}/api/qr/mon-alias')
 
 if response.status_code == 200:
     with open('qrcode.png', 'wb') as f:
@@ -335,10 +337,10 @@ if response.status_code == 200:
     ],
     code: {
       curl: `# Le cookie de session est requis (remplacez par votre valeur)
-curl https://urls.lat/api/stats \\
+curl ${b}/api/stats \\
   -H "Cookie: sb-<project>-auth-token=<votre-token>"`,
       js: `// Dans le contexte du navigateur, les cookies sont envoyés automatiquement
-const response = await fetch('https://urls.lat/api/stats', {
+const response = await fetch('${b}/api/stats', {
   credentials: 'include', // inclut les cookies de session
 });
 
@@ -356,17 +358,25 @@ session = requests.Session()
 # Exemple avec une session déjà authentifiée :
 session.cookies.set('sb-<project>-auth-token', '<votre-token>')
 
-response = session.get('https://urls.lat/api/stats')
+response = session.get('${b}/api/stats')
 stats = response.json()
 print(f"Total clics : {stats['totalClicks']}")`,
     },
   },
-];
+  ];
+}
 
 /* ─── main page ─── */
 
 export default function DocsPage() {
   const [activeEndpoint, setActiveEndpoint] = useState('shorten');
+  const [baseUrl, setBaseUrl] = useState('');
+
+  useEffect(() => {
+    setBaseUrl(window.location.origin);
+  }, []);
+
+  const ENDPOINTS = getEndpoints(baseUrl);
   const endpoint = ENDPOINTS.find(e => e.id === activeEndpoint);
 
   return (
@@ -431,7 +441,7 @@ export default function DocsPage() {
 
             <div className="flex flex-wrap gap-4">
               {[
-                { label: 'Base URL',       value: 'https://urls.lat' },
+                { label: 'Base URL',       value: baseUrl || '…' },
                 { label: 'Format',         value: 'JSON' },
                 { label: 'Auth requise',   value: 'Stats uniquement' },
                 { label: 'Endpoints',      value: '4 routes' },
