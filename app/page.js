@@ -61,7 +61,7 @@ export default function HomePage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         // On envoie toujours le userId si l'utilisateur est connecté
-        body: JSON.stringify({ url, customCode, userId: user?.id || null }),
+        body: JSON.stringify({ url, customCode, userId: user?.id || null, baseUrl: window.location.origin }),
       });
 
       const data = await response.json();
@@ -236,7 +236,7 @@ export default function HomePage() {
                   </label>
                   <div className="flex items-center gap-2">
                     <span className="text-gray-600 text-sm font-medium bg-gray-100 px-3 py-3 rounded-xl border border-gray-200 whitespace-nowrap">
-                      url-shortener.io/
+                      {typeof window !== 'undefined' ? window.location.host : ''}/
                     </span>
                     <input
                       type="text"

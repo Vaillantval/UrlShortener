@@ -9,7 +9,7 @@ export async function POST(request) {
   );
 
   try {
-    const { url, customCode, userId } = await request.json();
+    const { url, customCode, userId, baseUrl: clientBaseUrl } = await request.json();
 
     if (!url) {
       return NextResponse.json({ error: 'URL requise' }, { status: 400 });
@@ -54,7 +54,7 @@ export async function POST(request) {
       throw error;
     }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = clientBaseUrl || process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
     return NextResponse.json({
       shortUrl: `${baseUrl}/${shortCode}`,
