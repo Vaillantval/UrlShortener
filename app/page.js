@@ -16,7 +16,8 @@ import {
   FiShield,
   FiZap,
   FiLogOut,
-  FiUsers
+  FiUsers,
+  FiCode,
 } from 'react-icons/fi';
 import { toast, Toaster } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
@@ -388,6 +389,124 @@ export default function HomePage() {
                 <p className="text-gray-600 text-sm">{feature.desc}</p>
               </motion.div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* API Section */}
+      <section className="py-16 bg-gray-950">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row items-center gap-12">
+
+            {/* Left — text */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              className="flex-1"
+            >
+              <div className="inline-flex items-center space-x-2 bg-indigo-950 border border-indigo-800 text-indigo-300 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
+                <FiCode className="w-3.5 h-3.5" />
+                <span>REST API</span>
+              </div>
+
+              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+                Intégrez-le dans{' '}
+                <span className="text-transparent bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text">
+                  vos apps
+                </span>
+              </h2>
+
+              <p className="text-gray-400 text-lg mb-8 leading-relaxed">
+                Notre API REST JSON vous permet de raccourcir des URLs, générer des QR codes
+                et consulter vos statistiques directement depuis votre code.
+                Sans clé requise pour les opérations de base.
+              </p>
+
+              <div className="grid grid-cols-2 gap-3 mb-8">
+                {[
+                  { label: 'Raccourcir une URL',  path: 'POST /api/shorten' },
+                  { label: 'Redirection auto',    path: 'GET /{shortCode}' },
+                  { label: 'Générer un QR code',  path: 'GET /api/qr/{code}' },
+                  { label: 'Statistiques',        path: 'GET /api/stats' },
+                ].map(item => (
+                  <div key={item.path} className="bg-gray-900 border border-gray-800 rounded-lg p-3">
+                    <div className="text-xs font-semibold text-white mb-1">{item.label}</div>
+                    <div className="text-xs font-mono text-indigo-400 truncate">{item.path}</div>
+                  </div>
+                ))}
+              </div>
+
+              <Link
+                href="/docs"
+                className="inline-flex items-center space-x-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-indigo-900/40"
+              >
+                <span>Voir la documentation complète</span>
+                <FiArrowRight className="w-4 h-4" />
+              </Link>
+            </motion.div>
+
+            {/* Right — code preview */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="flex-1 w-full"
+            >
+              <div className="rounded-2xl overflow-hidden border border-gray-800 shadow-2xl shadow-black/50">
+                <div className="flex items-center justify-between px-4 py-3 bg-gray-900 border-b border-gray-800">
+                  <div className="flex items-center space-x-1.5">
+                    <div className="w-3 h-3 rounded-full bg-red-500/70" />
+                    <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
+                    <div className="w-3 h-3 rounded-full bg-green-500/70" />
+                  </div>
+                  <span className="text-xs text-gray-500 font-mono">example.js</span>
+                </div>
+                <pre className="bg-gray-950 p-6 text-sm font-mono overflow-x-auto leading-relaxed">
+                  <span className="text-purple-400">const</span>
+                  <span className="text-white"> response </span>
+                  <span className="text-purple-400">= await </span>
+                  <span className="text-yellow-300">fetch</span>
+                  <span className="text-white">(</span>
+                  <span className="text-green-400">&apos;https://urls.lat/api/shorten&apos;</span>
+                  <span className="text-white">, {'{'}</span>{'\n'}
+                  <span className="text-white">  method: </span>
+                  <span className="text-green-400">&apos;POST&apos;</span>
+                  <span className="text-white">,</span>{'\n'}
+                  <span className="text-white">  headers: {'{'} </span>
+                  <span className="text-green-400">&apos;Content-Type&apos;</span>
+                  <span className="text-white">: </span>
+                  <span className="text-green-400">&apos;application/json&apos;</span>
+                  <span className="text-white"> {'}'},</span>{'\n'}
+                  <span className="text-white">  body: </span>
+                  <span className="text-yellow-300">JSON.stringify</span>
+                  <span className="text-white">({'{'}</span>{'\n'}
+                  <span className="text-white">    url: </span>
+                  <span className="text-green-400">&apos;https://mon-site.com/article&apos;</span>
+                  <span className="text-white">,</span>{'\n'}
+                  <span className="text-white">    customCode: </span>
+                  <span className="text-green-400">&apos;article-1&apos;</span>
+                  <span className="text-white">,</span>{'\n'}
+                  <span className="text-white">  {'}'}),</span>{'\n'}
+                  <span className="text-white">{'}'});</span>{'\n\n'}
+                  <span className="text-purple-400">const</span>
+                  <span className="text-white"> {'{ '}</span>
+                  <span className="text-blue-300">shortUrl</span>
+                  <span className="text-white">{' }'} = </span>
+                  <span className="text-purple-400">await </span>
+                  <span className="text-white">response.</span>
+                  <span className="text-yellow-300">json</span>
+                  <span className="text-white">();</span>{'\n'}
+                  <span className="text-white">console.</span>
+                  <span className="text-yellow-300">log</span>
+                  <span className="text-white">(</span>
+                  <span className="text-blue-300">shortUrl</span>
+                  <span className="text-white">);</span>{'\n'}
+                  <span className="text-gray-500">{'// → "https://urls.lat/article-1"'}</span>
+                </pre>
+              </div>
+            </motion.div>
+
           </div>
         </div>
       </section>
