@@ -470,7 +470,7 @@ export default function HomePage() {
                   <span className="text-purple-400">= await </span>
                   <span className="text-yellow-300">fetch</span>
                   <span className="text-white">(</span>
-                  <span className="text-green-400">&apos;{origin || window.location.origin}/api/shorten&apos;</span>
+                  <span className="text-green-400">&apos;{origin || 'https://urls.lat'}/api/shorten&apos;</span>
                   <span className="text-white">, {'{'}</span>{'\n'}
                   <span className="text-white">  method: </span>
                   <span className="text-green-400">&apos;POST&apos;</span>
